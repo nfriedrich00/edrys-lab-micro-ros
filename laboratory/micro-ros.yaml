@@ -1,0 +1,769 @@
+id: hQw5LojX2hvPlHaW
+createdBy: 35banpdk0PiDE
+dateCreated: 1721050480859
+name: micro-ros
+meta:
+  logo: ''
+  description: ''
+  selfAssign: false
+  defaultNumberOfRooms: 0
+members:
+  teacher: []
+  student: []
+modules:
+  - url: https://edrys-labs.github.io/module-reference/
+    config: ''
+    studentConfig: ''
+    teacherConfig: ''
+    stationConfig: ''
+    width: full
+    height: tall
+    showInCustom: none
+  - url: https://cross-lab-project.github.io/edrys_module-markdown-it/index.html
+    config: >-
+      # Welcome to the micro-ROS Laboratory!
+
+
+      "The Robot Operating System (ROS) is a set of software libraries and tools
+      that help you build robot applications. From drivers to state-of-the-art
+      algorithms, and with powerful developer tools, ROS has what you need for
+      your next robotics project. And it's all open source." see
+      [ros.org](https://www.ros.org/)
+
+
+      ROS2 offers an easy start into the development of robot system whitout
+      restricting the adaptability. The open source community has built a huge
+      collection of tools and packages to please almost any requirements.
+      However, beginners often struggle, when trying to understand the ROS
+      concepts on a strictly theoretical level. For this reason, this edrys
+      remote lab offers an hands-on experience into the ROS world for
+      microcontrollers. You will learn how to transfer the ROS concepts onto a
+      microcontroller (raspberry pi pico w). Basic ROS skills are helpful but
+      not essential, although you might have to look up some infos.
+
+
+      Working with ROS heavily requires working with a terminal, which is why
+      you will use a terminal in this course, too. Of course, you can use a text
+      editor to help with the formatting.
+
+
+      Feel free to edit the source code in any way you like and test your ideas,
+      you can always reset it.
+    studentConfig: ''
+    teacherConfig: >-
+      ## Sharing Hardware
+
+
+      You have loaded this lab and your are in teacher mode.
+
+      In order to share the hardware with your students, you need to open a
+      stationConfig:
+
+
+
+      1. goto Settings > Station > and click on the URL below
+
+
+      2. or replace the classroom in this url with station
+
+
+
+      Note, the station has to be opened on a Chrome or a Chrome based browser,
+      as it requires the WebSerial-API.
+
+
+
+      ---
+
+
+
+      Then attach an raspberry pi pico w. In order to allow to flash the
+      software, you need to run a modified pyxterm.js terminal server with
+      special arguments: 
+
+
+      https://github.com/nfriedrich00/edrys-lab-micro-ros
+
+
+      1. Clone the repository
+
+
+      2. build the docker image with ```docker build -t pyxtermjs_microros .```.
+      This will take a while.
+
+
+      3. start the docker container with
+      ```docker run --name edrys --rm -it
+      --privileged --security-opt seccomp=unconfined
+      -v /var/run/docker.sock:/var/run/docker.sock
+      -v /usr/bin/docker:/usr/bin/docker
+      -v /etc/udev/rules.d:/etc/udev/rules.d
+      -v /dev:/dev -p 5000:5000 --network host pyxtermjs_microros```.
+
+
+      In order for the micro-ros node to communicate with the ROS-network, a
+      micro-ros-agent docker container needs to be running. With the command
+      avove, the docker socket is shared, so the micro-ros-agent container can
+      be started from within another container. However, for this to work, you
+      need to change the permission of the socket:
+
+      ```sudo chmod 666 /var/run/docker.sock```.
+
+
+      Otherwise, you could just start the micro-ros-agent in advance. Please
+      note that these arguments are necessary in order to flash the pico
+      remotelty but pose a considerable security risk.
+
+
+      To start the docker container, use this command:
+
+
+      ```docker run -d --name micro_ros_agent
+      --rm -v /dev:/dev
+      --privileged --net=host
+      microros/micro-ros-agent:humble udp4
+      --port 8888
+      ```
+
+    stationConfig: ''
+    showInCustom: lobby
+    width: full
+    height: huge
+  - url: https://edrys-labs.github.io/module-editor/index.html
+    config:
+      editorText: >
+        #include <stdio.h>
+
+
+        #include <rcl/rcl.h>
+
+        #include <rcl/error_handling.h>
+
+        #include <rclc/executor.h>
+
+
+        #include <std_msgs/msg/int8.h>
+
+        #include <geometry_msgs/msg/twist.h>
+
+        #include <std_msgs/msg/string.h>
+
+        #include <std_msgs/msg/float32.h>
+
+        #include <std_msgs/msg/u_int8.h>
+
+        #include <geometry_msgs/msg/vector3.h>
+
+
+
+        #include "pico/stdlib.h"
+
+        #include "pico_wifi_transport.h"
+
+        #include "hardware/adc.h"
+
+
+        // Network settings
+
+        char ssid[] = "ssid";
+
+        char pass[] = "pass";
+
+        char agent_ip[] = "192.168.204.126";     // host computer running the
+        micro_ros_agent node (or snap or docker agent)
+
+        int agent_port = 8888;
+
+
+
+        // Hardware settings
+
+        const int LED_RED = 10;
+
+        const int LED_GREEN = 11;
+
+        const int LED_BLUE = 12;
+
+        const int DISPLAY_A = 19;
+
+        const int DISPLAY_B = 20;
+
+        const int DISPLAY_C = 21;
+
+        const int DISPLAY_D = 22;
+
+        const int DISPLAY_E = 23;
+
+        const int DISPLAY_F = 24;
+
+        const int DISPLAY_G = 25;
+
+        const int DISPLAY_H = 26;
+
+
+        int counter = 0;
+
+
+        void turn_on_green_led()
+
+        {
+          gpio_put(LED_GREEN, 1);
+        }
+
+
+        void turn_off_green_led()
+
+        {
+          gpio_put(LED_GREEN, 0);
+        }
+
+
+        void timer_callback(rcl_timer_t *timer, uint8_t last_call_time)
+
+        {
+
+
+        }
+
+
+        void toggle_green_led()
+
+        {
+          if(counter % 2 == 0)
+          {
+            turn_on_green_led();
+          }
+          else
+          {
+            turn_off_green_led();
+          }
+          counter++;
+        }
+
+
+
+        int main()
+
+        {
+          set_microros_wifi_transports(ssid, pass, agent_ip, agent_port);
+          gpio_init(LED_GREEN);
+          gpio_set_dir(LED_GREEN, GPIO_OUT);
+          stdio_init_all();
+
+          while (true)
+          {
+            toggle_green_led();
+            sleep_ms(1000);
+          }
+
+          // ROS client Library timer, allocater, executer and support
+          rcl_timer_t timer;
+          rcl_allocator_t allocator = rcl_get_default_allocator();
+          rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+          rcl_init_options_init(&init_options, allocator);
+          const size_t ros_domain_id = 0;
+          rcl_init_options_set_domain_id(&init_options, ros_domain_id);
+          rclc_support_t support;
+          rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator);
+          rclc_executor_t executor;
+
+          // Wait for agent successful ping for 2 minutes.
+          const int timeout_ms = 1000;
+          const uint8_t attempts = 120;
+          rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
+
+          rclc_timer_init_default(
+            &timer,
+            &support,
+            RCL_MS_TO_NS(1000),
+            timer_callback);
+
+          rclc_executor_init(&executor, &support.context, 2, &allocator);
+          rclc_executor_add_timer(&executor, &timer);
+
+          while (true)
+          {
+            rcl_ret_t ret = rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1000));
+          }
+          return 0;
+        }
+      runCommand: execute
+      language: cpp
+      theme: light
+    studentConfig: ''
+    teacherConfig: ''
+    stationConfig: ''
+    showInCustom: station
+    width: full
+    height: tall
+  - url: https://edrys-labs.github.io/module-station-stream/index.html
+    config: ''
+    studentConfig: ''
+    teacherConfig: ''
+    stationConfig:
+      video: true
+      audio: false
+    showInCustom: station
+    width: half
+    height: medium
+  - url: https://cross-lab-project.github.io/edrys_module-pyxtermjs/index.html
+    config: ''
+    studentConfig: ''
+    teacherConfig: ''
+    stationConfig:
+      server: http://localhost:5000/pty
+      execute: execute
+      script: |
+        ~/Documents/run_code.sh -c $CODE
+      enable:
+        teacher: true
+        student: true
+    showInCustom: station
+    width: full
+    height: tall
+  - url: https://cross-lab-project.github.io/edrys_module-markdown-it/index.html
+    config: >-
+
+      # Getting started - Flash first program
+
+
+      > This task should give you a basic understanding of the pico library and
+      how to flash a program.
+
+
+      In the code editor you can see a simple example. Try out what happens,
+      when you click ```Run Code```.
+
+
+      Tip: If you cannot scroll up in the terminal, you can run it in a
+      tmux-session. To do this, type ```tmux``` before clicking ```Run Code```.
+      To enter scroll mode, you have to press ```ctrl + B``` followed by
+      ```[```. Now you can use the arrow keys to scroll up and see what happend.
+      To exit tmux hit ```ctrl + C``` and type ```tmux kill-sess``` or ```tmux
+      kill-session```.
+
+
+
+      <details>
+        <summary>Click here to proceed.</summary>
+        <p>The button did call a run_code.sh script that you can find in the micro_ros_pico_w folder. This script did create a new main.c file. You can use this file and cmake to build the program. This will create a .uf2 that you can later flash on the raspberry pi pico w. The CMakeLists.txt file is ready-to-use let's build the program.</p>
+      </details>
+
+
+      <details>
+        <summary>Click here, if you don't know how to build the file.</summary>
+        <p>First create a build folder inside the micro_ros_pico_w directory. Inside the build folder use ```cmake .. -DPICO_BOARD=pico_w```to configure the project and build the project with ```make```.</p>
+      </details>
+
+
+
+
+      Now that you have created your first raspberry pi pico software, it is
+      time to flash and see if everything is working fine. You could just copy
+      the file to the flash storage but this would require physical contact to
+      boot the raspberry pi pico w into bootsel mode (press bootsel button while
+      restarting). Fortunately, there is an easy solution to this problem.
+      Picotool allows you, to remotely flash and reboot the pico. At
+      ~/picotool/build/picotool you can find a pre-build executable. First try
+      to flash the program and reboot the pico yourself. You will be able to see
+      in the stream if it worked.
+
+
+      <details>
+        <summary>Click here to continue.</summary>
+        <p>You can flash the program with ```~/picotool/build/picotool load ~/micro_ros_pico_w/build/micro_ros_pico_w.uf2```. To reboot into application mode, which is the mode that will execute the program, you can use ```~/picotool/build/picotool reboot```. You can combine these commands with ```~/picotool/build/picotool load ~/micro_ros_pico_w/build/micro_ros_pico_w.uf2 -x```. If everything worked fine, you can see the green led blinking.</p>
+      </details>
+
+
+      At this moment, you may have encountered the "No accessible RP2040 devices
+      in BOOTSEL mode were found." message, which appears when rebooting the
+      pico whithout pressing the bootsel button. However, this is the
+      intentional behavior, as this is the only way the program can be executed.
+      You can always add the ```-f``` flag when flashing the program to force a
+      reboot into bootsel mode.
+
+
+      Unfortunately, this process only works, when the pico is still running. In
+      the next steps, you will modify the program, which inevitably will result
+      in runtime errors. In this case, you can use the ```reset_pico.sh```
+      script, which will tell the Arduino Uno to manually reboot the pico into
+      bootsel mode. 
+
+
+      Before we will create our first micro-ros node, you may want to facilitate
+      the build process. Feel free to modify the
+      ```~/micro_ros_pico_w/run_code.sh``` to automatically build the program.
+      You could also automatically flash the program, but then you may not
+      noticepossible compilation errors.
+
+
+      ```sleep_ms()``` is an easy way to introduce a delay but blocks the whole
+      program. Try using the timer callback instead.
+
+
+      <details>
+        <summary>Click here, if it doesn't work.</summary>
+        <p>It doesn't work. The program is trying to connect to the ROS-network. After two minutes, it returns an error. So let's make sure that the pico can connect to the ROS network first.</p>
+      </details>
+
+
+
+      # First Micro-ROS node
+
+        > In this task, we establish a connection to the ROS network and create a simple node with publisher.
+
+
+      ## Micro-ROS Agent
+
+
+      Although the pico is connected to the wifi, the micro-ROS node does not
+      send directly into the network. Instead, the micro-ROS clients rely on an
+      agent to transfer the communication in order to save ressources and
+      coordinate the communication to the ROS network. The ROS network builds on
+      top of DDS (Data Distribution Service).
+
+      ![Micro-ROS clients don't send directly into the DDS. Instead a micro-ROS
+      Agent coordinates the
+      communication.](https://micro.ros.org/docs/concepts/middleware/Micro_XRCE-DDS/uxrce_scope.png
+      "Micro-ROS clients don't send directly into the DDS. Instead a micro-ROS
+      Agent coordinates the communication.")
+
+
+      Before you can receive any messages from the micro-ROS node, you need to
+      start an agent. The agent can run inside a docker container. Inside the
+      main.c, you can find the network configuration. The micro-ROS node needs
+      to know the ip address of the agent (same as host machine running the
+      container) and the port number. You can get the hosts ip address with
+      ```ip addr```.
+
+
+      ```bash
+
+      docker run -d --name micro_ros_agent \
+
+      --rm -v /dev:/dev \
+
+      --privileged --net=host \
+
+      microros/micro-ros-agent:humble udp4 \
+
+      --port INSERT_PORT_NUMBER
+
+      ```
+
+
+      Make sure, the micro-ROS agent is running with ```docker ps```. This
+      allows the pico to connect to the DDS and the timer should work. Now it's
+      time to create our first node. 
+
+
+
+      Now the micro-ROS node should be connected to the DDS. Yet, it doesn't
+      show up, when listing the nodes. The reason for that, lies within the ros
+      domain id. These ids are used, to prevent interference between multiple
+      logical networks within the same physical network. To see the micro-ROS
+      node from the terminal, the ros domain ids from the terminal session and
+      the node have to match. You can see the id from the terminal session with
+      ```echo $ROS_DOMAIN_ID```. Set the ROS_DOMAIN_ID for both, the program and
+      the terminal, to 7.
+
+
+      ## The node
+
+
+      The pico is connected to the DDS and ready to send some messages. But to
+      publish messages, the program also needs a node and a connection to the
+      ROS-network. The node is a secluded code snippet, which may contain the
+      publisher, a subscriber, or in general any individual task. You can create
+      and initialize a node with:
+
+      ```c
+
+      rcl_node_t node;
+
+      rclc_node_init_default(&node, node_name, node_namespace, &support);
+
+      ```
+
+
+      Flash the modifies program and check, if the node is running. Make sure,
+      to first source ROS.
+
+
+      ## First publisher
+
+
+      At this moment, the node should be running and visible from within the
+      terminal session.
+
+
+      <details>
+        <summary>> Get help <</summary>
+        <p>You should see the node with "ros2 node list". If the led is not blinking, make sure there aren't any runtime errors. Try flashing the software again with picotool. If you get the error "No accessible RP2040 devices in BOOTSEL mode were found." this means there was a runtime error or the pico timed out waiting for the micro-ROS agent (more than 2 minutes since the program was last flashed). You should make sure, that the micro-ROS agent is running and your program uses the right network configuration. In ~/Documents/first_node.c you can find a working example (you might have to adjust the network settings there, too).</p>
+      </details>
+
+
+      If everything is working, it is time to add a simple publisher to our
+      node. Since we already have a counter, we can just publish this number on
+      the ```/counter```topic. But we cannot use the c int data type. To
+      exchange data within the ROS network, we have to communicate through
+      interfaces of one of three types: topics, services, or actions (see
+      [Documentation](https://docs.ros.org/en/humble/Concepts/Basic/About-Interfaces.html)).
+      For the communication through topics (n-n publisher-subscriber
+      communication) these interfaces are messages. Chose a suitable message
+      type for a number from the [std
+      messages](https://docs.ros2.org/latest/api/std_msgs/index-msg.html) and
+      create a publisher:. Use the timer to periodically publish the number.
+
+
+      Remember, you can use the tmux scoll mode to see the whole compile log.
+
+
+      ```c
+
+      // define publisher
+
+      rcl_publisher_t publisher_name;
+
+
+      // initialize publisher with best effort qos and message type from
+      std_msgs/msg
+
+      rclc_publisher_init_best_effort(
+          &publisher_name,
+          &node,
+          ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, message_type),
+          "topic_name");
+
+      //publish a message
+
+      rcl_ret_t ret = rcl_publish(&publisher_name, &message, NULL);
+
+      ```
+
+
+
+      <details>
+        <summary>Hint</summary>
+        <p>Make sure to assign the counter value to the ROS message. For example, to create a message of the type Int8, you can use "std_msgs__msg__Int8 msg_counter" and assign the value with "msg_counter.data = counter". Message Type is meant to be just the name, for example "Float32". In you Documents folder you can find the hidden file ~/Documents/.first_publisher.c with a working publisher.</p>
+      </details>
+
+
+
+      Now that you have mastered the basics, it is time to get creative.
+      Implement a scubsciber and try to use the 7-segment-display or the rgb
+      led. You can control them both with gpio_put().
+
+
+
+
+      ### Example Code
+
+
+      ``` c
+
+      #include <stdio.h>
+
+
+
+      #include <rcl/rcl.h>
+
+
+      #include <rcl/error_handling.h>
+
+
+      #include <rclc/executor.h>
+
+
+
+      #include <std_msgs/msg/int8.h>
+
+
+      #include <geometry_msgs/msg/twist.h>
+
+
+      #include <std_msgs/msg/string.h>
+
+
+      #include <std_msgs/msg/float32.h>
+
+
+      #include <std_msgs/msg/u_int8.h>
+
+
+      #include <geometry_msgs/msg/vector3.h>
+
+
+
+
+      #include "pico/stdlib.h"
+
+
+      #include "pico_wifi_transport.h"
+
+
+      #include "hardware/adc.h"
+
+
+
+      // Network settings
+
+
+      char ssid[] = "ssid";
+
+
+      char pass[] = "pass";
+
+
+      char agent_ip[] = "192.168.204.126";     // host computer running the
+
+      micro_ros_agent node (or snap or docker agent)
+
+
+      int agent_port = 8888;
+
+
+
+
+      // Hardware settings
+
+
+      const int LED_RED = 10;
+
+
+      const int LED_GREEN = 11;
+
+
+      const int LED_BLUE = 12;
+
+
+      const int DISPLAY_A = 19;
+
+
+      const int DISPLAY_B = 20;
+
+
+      const int DISPLAY_C = 21;
+
+
+      const int DISPLAY_D = 22;
+
+
+      const int DISPLAY_E = 23;
+
+
+      const int DISPLAY_F = 24;
+
+
+      const int DISPLAY_G = 25;
+
+
+      const int DISPLAY_H = 26;
+
+
+
+      int counter = 0;
+
+
+
+      void turn_on_green_led()
+
+
+      {
+        gpio_put(LED_GREEN, 1);
+      }
+
+
+
+      void turn_off_green_led()
+
+
+      {
+        gpio_put(LED_GREEN, 0);
+      }
+
+
+
+      void timer_callback(rcl_timer_t *timer, uint8_t last_call_time)
+
+
+      {
+
+
+
+      }
+
+
+
+      void toggle_green_led()
+
+
+      {
+        if(counter % 2 == 0)
+        {
+          turn_on_green_led();
+        }
+        else
+        {
+          turn_off_green_led();
+        }
+        counter++;
+      }
+
+
+
+
+      int main()
+
+
+      {
+        set_microros_wifi_transports(ssid, pass, agent_ip, agent_port);
+        gpio_init(LED_GREEN);
+        gpio_set_dir(LED_GREEN, GPIO_OUT);
+        stdio_init_all();
+
+        while (true)
+        {
+          toggle_green_led();
+          sleep_ms(1000);
+        }
+
+        // ROS client Library timer, allocater, executer and support
+        rcl_timer_t timer;
+        rcl_allocator_t allocator = rcl_get_default_allocator();
+        rcl_init_options_t init_options = rcl_get_zero_initialized_init_options();
+        rcl_init_options_init(&init_options, allocator);
+        const size_t ros_domain_id = 0;
+        rcl_init_options_set_domain_id(&init_options, ros_domain_id);
+        rclc_support_t support;
+        rclc_support_init_with_options(&support, 0, NULL, &init_options, &allocator);
+        rclc_executor_t executor;
+
+        // Wait for agent successful ping for 2 minutes.
+        const int timeout_ms = 1000;
+        const uint8_t attempts = 120;
+        rcl_ret_t ret = rmw_uros_ping_agent(timeout_ms, attempts);
+
+        rclc_timer_init_default(
+          &timer,
+          &support,
+          RCL_MS_TO_NS(1000),
+          timer_callback);
+
+        rclc_executor_init(&executor, &support.context, 2, &allocator);
+        rclc_executor_add_timer(&executor, &timer);
+
+        while (true)
+        {
+          rcl_ret_t ret = rclc_executor_spin_some(&executor, RCL_MS_TO_NS(1000));
+        }
+        return 0;
+      }
+
+      ```
+    studentConfig: ''
+    teacherConfig: ''
+    stationConfig: ''
+    showInCustom: station
+    width: half
+    height: tall
